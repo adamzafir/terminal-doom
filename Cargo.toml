@@ -1,0 +1,23 @@
+[package]
+name = "terminal-doom"
+version = "0.1.0"
+edition = "2024"
+description = "A Doom-inspired first-person shooter rendered entirely in a terminal"
+license = "MIT"
+repository = "https://github.com/adamzafir/terminal-doom"
+homepage = "https://github.com/adamzafir/terminal-doom"
+readme = "README.md"
+keywords = ["terminal", "game", "fps", "raycaster", "doom"]
+categories = ["games"]
+
+[[bin]]
+name = "doom"
+path = "src/main.rs"
+
+[dependencies]
+crossterm = "0.29"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

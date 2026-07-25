@@ -1,0 +1,5 @@
+/target/
+/npm/bin/native/
+.DS_Store
+*.swp
+*.tmp
