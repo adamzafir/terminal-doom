@@ -11,7 +11,7 @@ The installed command is always `doom`.
 ### Homebrew
 
 ```sh
-brew install adamzafir/terminal-doom/terminal-doom
+brew install --cask adamzafir/terminal-doom/terminal-doom
 doom
 ```
 
