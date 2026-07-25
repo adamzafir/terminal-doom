@@ -11,7 +11,7 @@ The installed command is always `doom`.
 ### Homebrew
 
 ```sh
-brew install --cask adamzafir/terminal-doom/terminal-doom
+brew install --cask --no-quarantine adamzafir/terminal-doom/terminal-doom
 doom
 ```
 
@@ -21,7 +21,7 @@ Rust must be installed because the npm package builds the small native
 executable for your platform.
 
 ```sh
-npm install -g github:adamzafir/terminal-doom
+npm install -g https://github.com/adamzafir/terminal-doom/archive/refs/tags/v0.1.0.tar.gz
 doom
 ```
 
