@@ -11,4 +11,9 @@ cask "terminal-doom" do
   homepage "https://github.com/adamzafir/terminal-doom"
 
   binary "doom"
+
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-d", "com.apple.quarantine", "#{staged_path}/doom"]
+  end
 end
