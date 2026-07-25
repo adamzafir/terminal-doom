@@ -1,0 +1,45 @@
+{
+  "name": "terminal-doom",
+  "version": "0.1.0",
+  "description": "A Doom-inspired first-person shooter rendered entirely in a terminal",
+  "license": "MIT",
+  "homepage": "https://github.com/adamzafir/terminal-doom#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adamzafir/terminal-doom.git"
+  },
+  "bugs": {
+    "url": "https://github.com/adamzafir/terminal-doom/issues"
+  },
+  "bin": {
+    "doom": "npm/bin/doom.js"
+  },
+  "scripts": {
+    "postinstall": "node npm/install.js",
+    "test": "cargo test --all"
+  },
+  "files": [
+    "npm",
+    "src",
+    "Cargo.toml",
+    "Cargo.lock",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "keywords": [
+    "terminal",
+    "game",
+    "fps",
+    "raycaster",
+    "doom",
+    "rust"
+  ]
+}
