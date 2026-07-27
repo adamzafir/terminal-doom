@@ -391,3 +391,50 @@ fn main() {
         std::process::exit(1);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn opening_frame_visibly_contains_an_enemy() {
+        let game = Game::new();
+        let presentation = Presentation::from_game(&game);
+        assert!(
+            !presentation.entities.is_empty(),
+            "gameplay should provide enemies to the renderer"
+        );
+
+        let renderer = Renderer::default();
+        let populated_scene = RenderScene {
+            map: game.current_map(),
+            camera: Camera::new(game.player.pos, game.player.angle),
+            entities: &presentation.entities,
+            pickups: &presentation.pickups,
+            hud: &presentation.hud,
+            weapon: presentation.weapon,
+            messages: &presentation.messages,
+            overlay: Overlay::None,
+            show_minimap: false,
+            damage_flash: 0.0,
+            elapsed: game.elapsed as f32,
+        };
+        let populated = renderer.render(&populated_scene, 80, 28);
+
+        let empty_entities = [];
+        let empty_scene = RenderScene {
+            entities: &empty_entities,
+            ..populated_scene
+        };
+        let empty = renderer.render(&empty_scene, 80, 28);
+        let changed_cells = (0..populated.height)
+            .flat_map(|y| (0..populated.width).map(move |x| (x, y)))
+            .filter(|&(x, y)| populated.get(x, y) != empty.get(x, y))
+            .count();
+
+        assert!(
+            changed_cells > 0,
+            "the opening enemy should change visible cells in the first-person frame"
+        );
+    }
+}

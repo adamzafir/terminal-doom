@@ -604,18 +604,25 @@ impl Renderer {
             if camera_depth >= depth[screen_x as usize] {
                 continue;
             }
-            let source_x = (px * source_width / sprite_width).clamp(0, source_width - 1);
+            let source_x =
+                ((2 * px + 1) * source_width / (2 * sprite_width)).clamp(0, source_width - 1);
+            let source_x_start = (px * source_width / sprite_width).clamp(0, source_width - 1);
+            let source_x_end = (((px + 1) * source_width + sprite_width - 1) / sprite_width)
+                .clamp(source_x_start + 1, source_width);
             let mut drew_column = false;
             for py in 0..sprite_height {
                 let screen_y = top + py;
                 if screen_y < 0 || screen_y >= view_height as i32 {
                     continue;
                 }
-                let source_y = (py * source_height / sprite_height).clamp(0, source_height - 1);
-                let ch = template[source_y as usize]
-                    .chars()
-                    .nth(source_x as usize)
-                    .unwrap_or(' ');
+                let source_y = ((2 * py + 1) * source_height / (2 * sprite_height))
+                    .clamp(0, source_height - 1);
+                let ch = sample_scaled_glyph(
+                    template[source_y as usize],
+                    source_x,
+                    source_x_start,
+                    source_x_end,
+                );
                 if ch != ' ' {
                     frame.set(screen_x, screen_y, color(ch));
                     drew_column = true;
@@ -1115,6 +1122,26 @@ fn squared_distance(a: Vec2, b: Vec2) -> f64 {
     dx * dx + dy * dy
 }
 
+/// Select an opaque glyph from the source region represented by one scaled
+/// terminal column. ASCII sprites contain intentional padding; sampling only
+/// the region's center can otherwise make a distant one-column enemy vanish.
+fn sample_scaled_glyph(row: &str, preferred: i32, start: i32, end: i32) -> char {
+    let glyphs: Vec<char> = row.chars().collect();
+    let glyph_at = |index: i32| glyphs.get(index as usize).copied().unwrap_or(' ');
+    let preferred_glyph = glyph_at(preferred);
+    if preferred_glyph != ' ' {
+        return preferred_glyph;
+    }
+
+    (start..end)
+        .filter_map(|index| {
+            let glyph = glyph_at(index);
+            (glyph != ' ').then_some(((index - preferred).abs(), glyph))
+        })
+        .min_by_key(|(distance, _)| *distance)
+        .map_or(' ', |(_, glyph)| glyph)
+}
+
 fn direction_arrow(angle: f64) -> char {
     let normalized = normalize_angle(angle);
     if (-PI / 4.0..PI / 4.0).contains(&normalized) {
@@ -1392,5 +1419,37 @@ mod tests {
         assert_eq!(direction_arrow(std::f64::consts::FRAC_PI_2), 'v');
         assert_eq!(direction_arrow(-std::f64::consts::FRAC_PI_2), '^');
         assert_eq!(direction_arrow(PI), '<');
+    }
+
+    #[test]
+    fn distant_billboard_preserves_visible_sprite_pixels() {
+        let renderer = Renderer::default();
+        let mut frame = Frame::new(80, 24);
+        let mut depth = vec![renderer.max_distance; frame.width as usize];
+        let template = &[
+            "   ___   ",
+            "  /o o\\  ",
+            "  | ^ |  ",
+            " /|===|\\ ",
+            "/ |###| \\",
+            "  /| |\\  ",
+            " /_| |_\\ ",
+        ];
+
+        renderer.draw_billboard(
+            &mut frame,
+            Camera::new(Vec2::new(1.5, 1.5), 0.0),
+            Vec2::new(11.5, 1.5),
+            template,
+            0.9,
+            20,
+            &mut depth,
+            |ch| Cell::new(ch, Color::Magenta, Color::Black),
+        );
+
+        assert!(
+            frame.cells.iter().any(|cell| cell.fg == Color::Magenta),
+            "a distant one-column enemy should remain visible"
+        );
     }
 }

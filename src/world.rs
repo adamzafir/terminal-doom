@@ -651,7 +651,7 @@ pub fn builtin_levels() -> Vec<Level> {
             "The Hangar",
             &[
                 "11111111111111111111",
-                "1P....A....1.......1",
+                "1P....A.e..1.......1",
                 "1.111.111..1..e.H..1",
                 "1.....1....+.......1",
                 "1..e..1....1..111..1",
@@ -803,5 +803,26 @@ mod tests {
             assert!(!level.spawns.is_empty());
             assert!(level.map.is_walkable(level.player_start, 0.25));
         }
+    }
+
+    #[test]
+    fn first_level_starts_with_a_visible_hostile() {
+        let level = builtin_levels().remove(0);
+        let visible_enemy = level.spawns.iter().any(|spawn| {
+            matches!(spawn.kind, SpawnKind::Enemy(_))
+                && spawn.position.distance(level.player_start) < 9.0
+                && (spawn.position - level.player_start)
+                    .normalized()
+                    .dot(Vec2::from_angle(0.0))
+                    > 0.9
+                && level
+                    .map
+                    .has_line_of_sight(level.player_start, spawn.position)
+        });
+
+        assert!(
+            visible_enemy,
+            "the opening corridor should introduce an enemy immediately"
+        );
     }
 }
