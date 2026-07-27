@@ -21,7 +21,7 @@ Rust must be installed because the npm package builds the small native
 executable for your platform.
 
 ```sh
-npm install -g https://github.com/adamzafir/terminal-doom/archive/refs/tags/v0.1.1.tar.gz
+npm install -g https://github.com/adamzafir/terminal-doom/archive/refs/tags/v0.1.2.tar.gz
 doom
 ```
 

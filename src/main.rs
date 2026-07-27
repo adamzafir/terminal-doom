@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io::{self, Stdout, Write};
+use std::io::{self, Stdout};
 use std::time::{Duration, Instant};
 
 use crossterm::cursor::{Hide, Show};
@@ -11,8 +11,8 @@ use crossterm::terminal::{
 };
 use terminal_doom::game::{EnemyKind, Game, GameState, InputCommand, PickupKind, Weapon};
 use terminal_doom::render::{
-    Camera, EntityVisual, HudData, MessageKind, Overlay, PickupVisual, RenderEntity, RenderMessage,
-    RenderPickup, RenderScene, Renderer, WeaponView, WeaponVisual,
+    Camera, EntityVisual, FramePresenter, HudData, MessageKind, Overlay, PickupVisual,
+    RenderEntity, RenderMessage, RenderPickup, RenderScene, Renderer, WeaponView, WeaponVisual,
 };
 use terminal_doom::world::SpawnKind;
 
@@ -312,6 +312,7 @@ impl Presentation {
 fn run(stdout: &mut Stdout) -> io::Result<()> {
     let _guard = TerminalGuard::enter(stdout)?;
     let renderer = Renderer::default();
+    let mut presenter = FramePresenter::default();
     let mut game = Game::new();
     let mut frontend = Frontend::default();
     let mut previous_tick = Instant::now();
@@ -352,8 +353,8 @@ fn run(stdout: &mut Stdout) -> io::Result<()> {
             damage_flash: (game.damage_flash as f32 * 5.5).clamp(0.0, 1.0),
             elapsed: game.elapsed as f32,
         };
-        renderer.render(&scene, width, height).queue_to(stdout)?;
-        stdout.flush()?;
+        let frame = renderer.render(&scene, width, height);
+        presenter.present(&frame, stdout)?;
 
         let elapsed = frame_start.elapsed();
         if elapsed < FRAME_TIME {

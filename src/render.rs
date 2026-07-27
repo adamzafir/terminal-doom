@@ -113,12 +113,34 @@ impl Frame {
     /// Adjacent cells with the same style are emitted as a single string. The
     /// caller remains responsible for flushing and terminal lifecycle.
     pub fn queue_to<W: Write>(&self, out: &mut W) -> io::Result<()> {
-        queue!(out, MoveTo(0, 0))?;
+        self.queue_changes_to(None, out)
+    }
+
+    /// Queue only cells that differ from the previous frame.
+    ///
+    /// Avoiding unchanged cells materially reduces terminal traffic and keeps
+    /// static UI such as the HUD from being repainted—and visibly flashing—on
+    /// every simulation tick.
+    fn queue_changes_to<W: Write>(&self, previous: Option<&Self>, out: &mut W) -> io::Result<()> {
+        let previous = previous.filter(|frame| {
+            frame.width == self.width
+                && frame.height == self.height
+                && frame.cells.len() == self.cells.len()
+        });
         let mut current: Option<(Color, Color, bool)> = None;
 
-        for row in self.cells.chunks(self.width as usize) {
+        for (y, row) in self.cells.chunks(self.width as usize).enumerate() {
             let mut index = 0;
             while index < row.len() {
+                let unchanged = previous.is_some_and(|frame| {
+                    frame.cells[y * self.width as usize + index] == row[index]
+                });
+                if unchanged {
+                    index += 1;
+                    continue;
+                }
+
+                queue!(out, MoveTo(index as u16, y as u16))?;
                 let style = (row[index].fg, row[index].bg, row[index].bold);
                 if current != Some(style) {
                     queue!(
@@ -135,7 +157,11 @@ impl Frame {
                 }
 
                 let mut run = String::new();
-                while index < row.len() && (row[index].fg, row[index].bg, row[index].bold) == style
+                while index < row.len()
+                    && (row[index].fg, row[index].bg, row[index].bold) == style
+                    && previous.is_none_or(|frame| {
+                        frame.cells[y * self.width as usize + index] != row[index]
+                    })
                 {
                     run.push(row[index].ch);
                     index += 1;
@@ -151,6 +177,29 @@ impl Frame {
         let mut bytes = Vec::new();
         self.queue_to(&mut bytes)?;
         Ok(bytes)
+    }
+}
+
+/// Presents completed frames atomically when the terminal supports synchronized
+/// updates and falls back gracefully to differential output when it does not.
+#[derive(Clone, Debug, Default)]
+pub struct FramePresenter {
+    previous: Option<Frame>,
+}
+
+impl FramePresenter {
+    pub fn present<W: Write>(&mut self, frame: &Frame, out: &mut W) -> io::Result<()> {
+        const BEGIN_SYNC: &[u8] = b"\x1b[?2026h";
+        const END_SYNC: &[u8] = b"\x1b[?2026l";
+
+        let mut update = Vec::with_capacity(frame.cells.len() * 2);
+        update.extend_from_slice(BEGIN_SYNC);
+        frame.queue_changes_to(self.previous.as_ref(), &mut update)?;
+        update.extend_from_slice(END_SYNC);
+        out.write_all(&update)?;
+        out.flush()?;
+        self.previous = Some(frame.clone());
+        Ok(())
     }
 }
 
@@ -1405,6 +1454,30 @@ mod tests {
         frame.text(0, 0, "OK", Cell::new(' ', Color::Green, Color::Black));
         let output = String::from_utf8(frame.to_ansi_bytes().unwrap()).unwrap();
         assert!(output.contains("OK"));
+    }
+
+    #[test]
+    fn presenter_does_not_repaint_an_unchanged_hud() {
+        let mut frame = Frame::new(20, 4);
+        frame.text(
+            0,
+            3,
+            "HP 100  AMMO 72",
+            Cell::new(' ', Color::White, Color::Black).bold(),
+        );
+        let mut presenter = FramePresenter::default();
+        presenter.present(&frame, &mut Vec::new()).unwrap();
+
+        let mut unchanged_update = Vec::new();
+        presenter.present(&frame, &mut unchanged_update).unwrap();
+        let output = String::from_utf8(unchanged_update).unwrap();
+        assert!(output.starts_with("\u{1b}[?2026h"));
+        assert!(output.ends_with("\u{1b}[?2026l"));
+        assert!(!output.contains("HP 100"));
+        assert!(
+            output.len() < 32,
+            "an unchanged frame should contain only synchronization/reset control bytes"
+        );
     }
 
     #[test]

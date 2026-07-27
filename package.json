@@ -1,6 +1,6 @@
 {
   "name": "terminal-doom",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A Doom-inspired first-person shooter rendered entirely in a terminal",
   "license": "MIT",
   "homepage": "https://github.com/adamzafir/terminal-doom#readme",
