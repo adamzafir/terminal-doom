@@ -1,9 +1,9 @@
 cask "terminal-doom" do
   arch arm: "aarch64", intel: "x86_64"
 
-  version "0.1.0"
-  sha256 arm:   "555180291b987984e5a2757137d3b18222ab9b66714406e48e187dd9edc5502d",
-         intel: "e1e64ccf9d8851d28d4938457a7f54f200d8bcb9f1769be92ec276acb8d14b18"
+  version "0.1.1"
+  sha256 arm:   "f50e1fb081cc6991a45a26fd4b529f117196ecc6c993ea91ee623398ee5ac9e0",
+         intel: "f6253dc6dae2abf043f5b4a51ed2342897cae2b7c69a0da84197129afb4c04eb"
 
   url "https://github.com/adamzafir/terminal-doom/releases/download/v#{version}/terminal-doom-#{arch}-apple-darwin.tar.gz"
   name "Terminal Doom"
